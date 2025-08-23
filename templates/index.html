@@ -56,16 +56,26 @@
                 
                 const data1 = [], data2 = [], labels = [];
                 
+                // Process file 1 data
                 csv.file1.rows.forEach((row, index) => {
-                    const xVal = row[config.file1_x_field];
                     const yVal = parseFloat(row[config.file1_y_field]);
                     
-                    if (xVal && !isNaN(yVal)) {
-                        labels.push(parseInt(xVal) || 2010 + index);
+                    if (!isNaN(yVal)) {
+                        if (config.file1_x_field === '__default_years__') {
+                            labels.push(2010 + index);
+                        } else {
+                            const xVal = row[config.file1_x_field];
+                            if (xVal) {
+                                labels.push(parseInt(xVal) || 2010 + index);
+                            } else {
+                                return; // Skip if no x value
+                            }
+                        }
                         data1.push(yVal);
                     }
                 });
                 
+                // Process file 2 data
                 csv.file2.rows.forEach((row, index) => {
                     if (index < data1.length) {
                         const yVal = parseFloat(row[config.file2_y_field]);
