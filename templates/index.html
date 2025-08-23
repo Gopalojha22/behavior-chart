@@ -57,26 +57,41 @@
                 const data1 = [], data2 = [], labels = [];
                 
                 // Process file 1 data
-                const currentYear = new Date().getFullYear();
-                csv.file1.rows.forEach((row, index) => {
-                    const yVal = parseFloat(row[config.file1_y_field]);
-                    
-                    if (!isNaN(yVal)) {
-                        if (config.file1_x_field === '__default_years__') {
-                            // Start from current year and go backwards based on data length
-                            const totalRows = csv.file1.rows.filter(r => !isNaN(parseFloat(r[config.file1_y_field]))).length;
-                            labels.push(currentYear - totalRows + index + 1);
-                        } else {
-                            const xVal = row[config.file1_x_field];
-                            if (xVal) {
-                                labels.push(parseInt(xVal) || currentYear - index);
-                            } else {
-                                return; // Skip if no x value
+                if (config.file1_x_field === '__default_years__') {
+                    // Auto-detect years from any date/year column in CSV
+                    const detectedYears = [];
+                    csv.file1.rows.forEach(row => {
+                        for (let header of csv.file1.headers) {
+                            const val = row[header];
+                            if (val) {
+                                const year = parseInt(val) || new Date(val).getFullYear();
+                                if (year >= 1900 && year <= 2100) {
+                                    detectedYears.push(year);
+                                    break;
+                                }
                             }
                         }
-                        data1.push(yVal);
-                    }
-                });
+                    });
+                    
+                    csv.file1.rows.forEach((row, index) => {
+                        const yVal = parseFloat(row[config.file1_y_field]);
+                        if (!isNaN(yVal)) {
+                            labels.push(detectedYears[index] || 2014 + index);
+                            data1.push(yVal);
+                        }
+                    });
+                } else {
+                    csv.file1.rows.forEach((row, index) => {
+                        const yVal = parseFloat(row[config.file1_y_field]);
+                        if (!isNaN(yVal)) {
+                            const xVal = row[config.file1_x_field];
+                            if (xVal) {
+                                labels.push(parseInt(xVal) || new Date(xVal).getFullYear() || 2014 + index);
+                                data1.push(yVal);
+                            }
+                        }
+                    });
+                }
                 
                 // Process file 2 data
                 csv.file2.rows.forEach((row, index) => {
