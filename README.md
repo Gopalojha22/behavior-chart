@@ -84,6 +84,19 @@ FLASK_ENV=production
 PORT=5000
 ```
 
+### Deploy to Vercel (Recommended)
+```bash
+# Install Vercel CLI
+npm i -g vercel
+
+# Deploy
+vercel
+
+# Set environment variables in Vercel dashboard:
+# SECRET_KEY=your-random-secret-key
+# FLASK_ENV=production
+```
+
 ### Deploy to Heroku
 ```bash
 # Install Heroku CLI and login
