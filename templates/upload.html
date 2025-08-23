@@ -4,95 +4,20 @@
     <meta charset="UTF-8">
     <title>Upload CSV Files - Behavior Chart</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        .container {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            padding: 40px;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            max-width: 600px;
-            margin: 0 auto;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        h1 {
-            text-align: center;
-            color: #333;
-            margin-bottom: 10px;
-            font-size: 2.2em;
-            font-weight: 300;
-        }
-        .subtitle {
-            text-align: center;
-            color: #666;
-            margin-bottom: 30px;
-            font-size: 1.1em;
-        }
-        .upload-section {
-            background: linear-gradient(135deg, #f8f9ff 0%, #faf5ff 100%);
-            border: 2px solid rgba(102, 126, 234, 0.1);
-            padding: 30px;
-            border-radius: 15px;
-            margin-bottom: 20px;
-        }
-        .file-input-group {
-            margin-bottom: 25px;
-        }
-        .file-input-group label {
-            display: block;
-            font-weight: 600;
-            color: #555;
-            margin-bottom: 8px;
-            font-size: 1em;
-        }
-        input[type="file"] {
-            width: 100%;
-            padding: 15px;
-            border: 2px dashed #667eea;
-            border-radius: 10px;
-            background: rgba(102, 126, 234, 0.05);
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        input[type="file"]:hover {
-            border-color: #764ba2;
-            background: rgba(118, 75, 162, 0.05);
-        }
-        button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 15px 30px;
-            border: none;
-            border-radius: 12px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: 600;
-            width: 100%;
-            margin-top: 20px;
-            transition: all 0.3s ease;
-        }
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
-        }
-        .info {
-            background: rgba(102, 126, 234, 0.1);
-            padding: 15px;
-            border-radius: 10px;
-            color: #555;
-            font-size: 0.9em;
-            line-height: 1.5;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .container { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); padding: 40px; border-radius: 20px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1); max-width: 600px; margin: 0 auto; border: 1px solid rgba(255, 255, 255, 0.2); }
+        h1 { text-align: center; color: #333; margin-bottom: 10px; font-size: 2.2em; font-weight: 300; }
+        .subtitle { text-align: center; color: #666; margin-bottom: 30px; font-size: 1.1em; }
+        .upload-section { background: linear-gradient(135deg, #f8f9ff 0%, #faf5ff 100%); border: 2px solid rgba(102, 126, 234, 0.1); padding: 30px; border-radius: 15px; margin-bottom: 20px; }
+        .file-input-group { margin-bottom: 25px; }
+        .file-input-group label { display: block; font-weight: 600; color: #555; margin-bottom: 8px; font-size: 1em; }
+        input[type="file"] { width: 100%; padding: 15px; border: 2px dashed #667eea; border-radius: 10px; background: rgba(102, 126, 234, 0.05); cursor: pointer; transition: all 0.3s ease; }
+        input[type="file"]:hover { border-color: #764ba2; background: rgba(118, 75, 162, 0.05); }
+        button { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; border: none; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: 600; width: 100%; margin-top: 20px; transition: all 0.3s ease; }
+        button:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3); }
+        .info { background: rgba(102, 126, 234, 0.1); padding: 15px; border-radius: 10px; color: #555; font-size: 0.9em; line-height: 1.5; }
+        .error { color: #e74c3c; margin: 10px 0; padding: 10px; background: rgba(231, 76, 60, 0.1); border-radius: 5px; display: none; }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
@@ -101,23 +26,23 @@
         <h1><i class="fas fa-chart-line"></i> Behavior Chart</h1>
         <p class="subtitle">Upload your CSV files to create interactive comparison charts</p>
         
-        <form action="/upload" method="post" enctype="multipart/form-data">
-            <div class="upload-section">
-                <div class="file-input-group">
-                    <label for="file1"><i class="fas fa-file-csv"></i> First Dataset (CSV)</label>
-                    <input type="file" id="file1" name="file1" accept=".csv" required>
-                </div>
-                
-                <div class="file-input-group">
-                    <label for="file2"><i class="fas fa-file-csv"></i> Second Dataset (CSV)</label>
-                    <input type="file" id="file2" name="file2" accept=".csv" required>
-                </div>
-                
-                <button type="submit">
-                    <i class="fas fa-upload"></i> Upload Files & Continue
-                </button>
+        <div class="upload-section">
+            <div class="file-input-group">
+                <label for="file1"><i class="fas fa-file-csv"></i> First Dataset (CSV)</label>
+                <input type="file" id="file1" accept=".csv" required>
             </div>
-        </form>
+            
+            <div class="file-input-group">
+                <label for="file2"><i class="fas fa-file-csv"></i> Second Dataset (CSV)</label>
+                <input type="file" id="file2" accept=".csv" required>
+            </div>
+            
+            <button onclick="processFiles()">
+                <i class="fas fa-upload"></i> Process Files & Continue
+            </button>
+            
+            <div id="error" class="error"></div>
+        </div>
         
         <div class="info">
             <strong>CSV Format Requirements:</strong><br>
@@ -127,5 +52,61 @@
             • Date or numeric values for X-axis fields
         </div>
     </div>
+
+    <script>
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => errorDiv.style.display = 'none', 5000);
+        }
+
+        function parseCSV(text) {
+            const lines = text.split('\n').filter(line => line.trim());
+            if (lines.length < 2) throw new Error('CSV must have at least 2 lines');
+            
+            const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+            const rows = [];
+            
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+                if (values.length >= headers.length) {
+                    const row = {};
+                    headers.forEach((header, index) => {
+                        row[header] = values[index] || '';
+                    });
+                    rows.push(row);
+                }
+            }
+            
+            return { headers, rows };
+        }
+
+        function processFiles() {
+            const file1 = document.getElementById('file1').files[0];
+            const file2 = document.getElementById('file2').files[0];
+            
+            if (!file1 || !file2) {
+                showError('Please select both CSV files');
+                return;
+            }
+
+            Promise.all([
+                file1.text().then(parseCSV),
+                file2.text().then(parseCSV)
+            ]).then(([data1, data2]) => {
+                // Store in localStorage
+                localStorage.setItem('csvData', JSON.stringify({
+                    file1: { ...data1, name: file1.name },
+                    file2: { ...data2, name: file2.name }
+                }));
+                
+                // Redirect to field selector
+                window.location.href = '/field-selector';
+            }).catch(error => {
+                showError('Error processing files: ' + error.message);
+            });
+        }
+    </script>
 </body>
 </html>
