@@ -63,18 +63,27 @@
                     
                     if (!isNaN(yVal)) {
                         if (config.file1_x_field === '__default_years__') {
-                            // Start from current year and go backwards based on data length
-                            const totalRows = csv.file1.rows.filter(r => !isNaN(parseFloat(r[config.file1_y_field]))).length;
-                            labels.push(currentYear - totalRows + index + 1);
+                            // Extract year from row index (monthly data)
+                            const year = 2014 + Math.floor(index / 12);
+                            if (year <= 2025) {
+                                labels.push(year + (index % 12) / 12);
+                                data1.push(yVal);
+                            }
                         } else {
                             const xVal = row[config.file1_x_field];
                             if (xVal) {
-                                labels.push(parseInt(xVal) || currentYear - index);
-                            } else {
-                                return; // Skip if no x value
+                                // Handle monthly format like "2014-01"
+                                if (xVal.includes('-')) {
+                                    const [year, month] = xVal.split('-');
+                                    const yearNum = parseInt(year);
+                                    const monthNum = parseInt(month);
+                                    labels.push(yearNum + (monthNum - 1) / 12);
+                                } else {
+                                    labels.push(parseInt(xVal) || currentYear - index);
+                                }
+                                data1.push(yVal);
                             }
                         }
-                        data1.push(yVal);
                     }
                 });
                 
