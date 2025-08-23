@@ -63,17 +63,18 @@
                     
                     if (!isNaN(yVal)) {
                         if (config.file1_x_field === '__default_years__') {
-                            // Simple sequential years starting from 2014
-                            labels.push(2014 + index);
+                            // Only process first 12 rows (2014-2025)
+                            if (index < 12) {
+                                labels.push(2014 + index);
+                                data1.push(yVal);
+                            }
                         } else {
                             const xVal = row[config.file1_x_field];
                             if (xVal) {
                                 labels.push(parseInt(xVal) || currentYear - index);
-                            } else {
-                                return; // Skip if no x value
+                                data1.push(yVal);
                             }
                         }
-                        data1.push(yVal);
                     }
                 });
                 
@@ -218,11 +219,12 @@
                     scales: {
                         x: {
                             type: "linear",
-                            min: 2014,
-                            max: 2025,
+                            min: Math.min(...sbiData.years),
+                            max: Math.max(...sbiData.years),
                             ticks: { 
                                 stepSize: 1, 
-                                callback: (value) => Math.round(value).toString()
+                                callback: (value) => Math.round(value).toString(),
+                                maxTicksLimit: 15
                             },
                             grid: { display: false }
                         },
