@@ -2,108 +2,129 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>CSV Upload - Behavior Chart</title>
+    <title>Upload CSV Files - Behavior Chart</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         body {
-            font-family: Arial, sans-serif;
-            max-width: 600px;
-            margin: 50px auto;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
             padding: 20px;
-            background: #fafafa;
         }
         .container {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            margin: 0 auto;
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
         h1 {
             text-align: center;
             color: #333;
-            margin-bottom: 30px;
-        }
-        .upload-form {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-        .file-input {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-        label {
-            font-weight: bold;
-            color: #555;
-        }
-        input[type="file"], input[type="text"] {
-            padding: 10px;
-            border: 2px dashed #ddd;
-            border-radius: 5px;
-            background: #f9f9f9;
             margin-bottom: 10px;
+            font-size: 2.2em;
+            font-weight: 300;
         }
-        input[type="text"] {
-            border: 1px solid #ddd;
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        .upload-section {
+            background: linear-gradient(135deg, #f8f9ff 0%, #faf5ff 100%);
+            border: 2px solid rgba(102, 126, 234, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+        .file-input-group {
+            margin-bottom: 25px;
+        }
+        .file-input-group label {
+            display: block;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 8px;
+            font-size: 1em;
+        }
+        input[type="file"] {
+            width: 100%;
+            padding: 15px;
+            border: 2px dashed #667eea;
+            border-radius: 10px;
+            background: rgba(102, 126, 234, 0.05);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        input[type="file"]:hover {
+            border-color: #764ba2;
+            background: rgba(118, 75, 162, 0.05);
         }
         button {
-            background: #007bff;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 12px 20px;
+            padding: 15px 30px;
             border: none;
-            border-radius: 5px;
+            border-radius: 12px;
             cursor: pointer;
             font-size: 16px;
+            font-weight: 600;
+            width: 100%;
+            margin-top: 20px;
+            transition: all 0.3s ease;
         }
         button:hover {
-            background: #0056b3;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
         }
         .info {
-            background: #e7f3ff;
+            background: rgba(102, 126, 234, 0.1);
             padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            border-left: 4px solid #007bff;
-        }
-        .default-link {
-            text-align: center;
-            margin-top: 20px;
-        }
-        .default-link a {
-            color: #007bff;
-            text-decoration: none;
-        }
-        .default-link a:hover {
-            text-decoration: underline;
+            border-radius: 10px;
+            color: #555;
+            font-size: 0.9em;
+            line-height: 1.5;
         }
     </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
     <div class="container">
-        <h1>Upload CSV Files</h1>
+        <h1><i class="fas fa-chart-line"></i> Behavior Chart</h1>
+        <p class="subtitle">Upload your CSV files to create interactive comparison charts</p>
         
-        <div class="info">
-            <strong>CSV Format:</strong> Each file should have two columns - Date (MM/DD/YYYY) and Monthly Change (%). Max file size: 16MB.
-        </div>
-        
-        <form class="upload-form" action="/upload" method="post" enctype="multipart/form-data">
-            <div class="file-input">
-                <label for="file1">Dataset 1 (e.g., Nifty 50):</label>
-                <input type="file" id="file1" name="file1" accept=".csv" required>
-                <input type="text" name="name1" placeholder="Display name (e.g., Nifty 50)" maxlength="50" required>
+        <form action="/upload" method="post" enctype="multipart/form-data">
+            <div class="upload-section">
+                <div class="file-input-group">
+                    <label for="file1"><i class="fas fa-file-csv"></i> First Dataset (CSV)</label>
+                    <input type="file" id="file1" name="file1" accept=".csv" required>
+                </div>
+                
+                <div class="file-input-group">
+                    <label for="file2"><i class="fas fa-file-csv"></i> Second Dataset (CSV)</label>
+                    <input type="file" id="file2" name="file2" accept=".csv" required>
+                </div>
+                
+                <button type="submit">
+                    <i class="fas fa-upload"></i> Upload Files & Continue
+                </button>
             </div>
-            
-            <div class="file-input">
-                <label for="file2">Dataset 2 (e.g., Nifty Next 50):</label>
-                <input type="file" id="file2" name="file2" accept=".csv" required>
-                <input type="text" name="name2" placeholder="Display name (e.g., Nifty Next 50)" maxlength="50" required>
-            </div>
-            
-            <button type="submit">Upload and Generate Chart</button>
         </form>
         
-        <div class="default-link">
-            <a href="/chart">View Chart with Default Data</a>
+        <div class="info">
+            <strong>CSV Format Requirements:</strong><br>
+            • Files should have headers in the first row<br>
+            • Data should be comma-separated<br>
+            • Numeric values for Y-axis fields<br>
+            • Date or numeric values for X-axis fields
         </div>
     </div>
 </body>
