@@ -57,16 +57,19 @@
                 const data1 = [], data2 = [], labels = [];
                 
                 // Process file 1 data
+                const currentYear = new Date().getFullYear();
                 csv.file1.rows.forEach((row, index) => {
                     const yVal = parseFloat(row[config.file1_y_field]);
                     
                     if (!isNaN(yVal)) {
                         if (config.file1_x_field === '__default_years__') {
-                            labels.push(2010 + index);
+                            // Start from current year and go backwards based on data length
+                            const totalRows = csv.file1.rows.filter(r => !isNaN(parseFloat(r[config.file1_y_field]))).length;
+                            labels.push(currentYear - totalRows + index + 1);
                         } else {
                             const xVal = row[config.file1_x_field];
                             if (xVal) {
-                                labels.push(parseInt(xVal) || 2010 + index);
+                                labels.push(parseInt(xVal) || currentYear - index);
                             } else {
                                 return; // Skip if no x value
                             }
