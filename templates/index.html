@@ -1,229 +1,224 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="UTF-8" />
+<head>
+    <meta charset="UTF-8">
     <title>Investment Comparison Chart</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-      body {
-        font-family: Arial, sans-serif;
-        padding: 20px;
-        background: #fafafa;
-      }
-      h2 {
-        text-align: center;
-        margin-bottom: 20px;
-      }
-      canvas {
-        width: 450px !important;
-        height: 700px !important;
-        background: white;
-        border-radius: 10px;
-        padding: 15px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-        display: block;
-        margin: auto;
-      }
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #fafafa;
+        }
+        canvas {
+            width: 450px !important;
+            height: 700px !important;
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            display: block;
+            margin: auto;
+        }
     </style>
-  </head>
-  <body>
+</head>
+<body>
     <canvas id="customChart"></canvas>
 
     <script>
-      let sbiChart,
-        sbiData,
-        progress = 0,
-        speed = 0.002;
+        let sbiChart, sbiData, progress = 0, speed = 0.002;
 
-      // Check if we should use uploaded data or default data
-      const endpoint = window.location.pathname === '/chart' ? '/data' : '/custom-data';
-      
-      // Fetch data
-      fetch(endpoint)
-        .then((response) => response.json())
-        .then((data) => {
-          sbiData = {
-            years: endpoint === '/custom-data' ? data.labels.map((y) => Number(y)) : data.labels.map((label, index) => index + 1),
-            dataset1: data.dataset1,
-            dataset2: data.dataset2,
-            dataset1_name: data.dataset1_name || "Dataset 1",
-            dataset2_name: data.dataset2_name || "Dataset 2",
-          };
-          initSBICart();
-          requestAnimationFrame(animateSBI);
-        });
-
-      // Plugin to draw name & price at end of line
-      const labelAtEndPlugin = {
-        id: "labelAtEnd",
-        afterDatasetsDraw(chart) {
-          const { ctx } = chart;
-          ctx.save();
-          ctx.font = "14px Arial";
-          ctx.textAlign = "left";
-          ctx.textBaseline = "middle";
-
-          chart.data.datasets.forEach((dataset, i) => {
-            if (!dataset.data.length) return;
-            const meta = chart.getDatasetMeta(i);
-            const lastPoint = meta.data[meta.data.length - 1];
-            const lastValue = dataset.data[dataset.data.length - 1].y;
-
-            // Dynamic label offset: shifts left if too close to chart edge
-            let offsetX = 6;
-            if (lastPoint.x > chart.chartArea.right - 60) {
-              offsetX = -60; // move left if near edge
-              ctx.textAlign = "right";
-            } else {
-              ctx.textAlign = "left";
-            }
-
-            ctx.fillStyle = dataset.borderColor;
-            ctx.fillText(
-              `${dataset.label}: ₹${lastValue.toLocaleString("en-IN")}`,
-              lastPoint.x + offsetX,
-              lastPoint.y
-            );
-          });
-
-          ctx.restore();
-        },
-      };
-
-      function initSBICart() {
-        const ctx = document.getElementById("customChart").getContext("2d");
-
-        const allValues = [...sbiData.dataset1, ...sbiData.dataset2];
-        const minY = Math.min(...allValues) * 0.95;
-        const maxY = Math.max(...allValues) * 1.05;
-
-        sbiChart = new Chart(ctx, {
-          type: "line",
-          data: {
-            datasets: [
-              {
-                label: sbiData.dataset1_name,
-                data: [],
-                borderColor: "blue",
-                borderWidth: 2,
-                fill: false,
-                tension: 0.1, // smoother curve
-                pointRadius: 0,
-              },
-              {
-                label: sbiData.dataset2_name,
-                data: [],
-                borderColor: "green",
-                borderWidth: 2,
-                fill: false,
-                tension: 0.1, // smoother curve
-                pointRadius: 0,
-              },
-            ],
-          },
-          options: {
-            layout: {
-              padding: {
-                right: 50, // extra space for labels at end of line
-              },
-            },
-            animation: false, // manual animation
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                mode: "index",
-                intersect: false,
-                callbacks: {
-                  label: (context) =>
-                    `${context.dataset.label}: ₹${Number(
-                      context.parsed.y
-                    ).toLocaleString("en-IN")}`,
-                },
-              },
-            },
-            scales: {
-              x: {
-                type: "linear",
-                min: sbiData.years[0],
-                max: sbiData.years[sbiData.years.length - 1],
-                ticks: {
-                  stepSize: 1,
-                  callback: (value) => value.toString(), // remove commas
-                },
-                grid: { display: false },
-              },
-              y: {
-                min: minY, // fixed scale
-                max: maxY, // fixed scale
-                ticks: {
-                  callback: (v) => `₹${Number(v).toLocaleString("en-IN")}`,
-                },
-                grid: { display: false },
-              },
-            },
-          },
-          plugins: [labelAtEndPlugin],
-        });
-      }
-
-      let animatedData1 = [];
-      let animatedData2 = [];
-
-      function animateSBI() {
-        if (progress < 1) {
-          progress += speed;
-
-          const totalPoints = sbiData.years.length;
-          const exactIndex = progress * (totalPoints - 1);
-          const lowerIndex = Math.floor(exactIndex);
-          const upperIndex = Math.min(lowerIndex + 1, totalPoints - 1);
-          const fraction = exactIndex - lowerIndex;
-
-          const interpX =
-            sbiData.years[lowerIndex] +
-            (sbiData.years[upperIndex] - sbiData.years[lowerIndex]) * fraction;
-
-          const interpY1 =
-            sbiData.dataset1[lowerIndex] +
-            (sbiData.dataset1[upperIndex] - sbiData.dataset1[lowerIndex]) *
-              fraction;
-
-          const interpY2 =
-            sbiData.dataset2[lowerIndex] +
-            (sbiData.dataset2[upperIndex] - sbiData.dataset2[lowerIndex]) *
-              fraction;
-
-          // Build from scratch only once at start
-          if (animatedData1.length === 0) {
-            animatedData1.push({ x: sbiData.years[0], y: sbiData.dataset1[0] });
-            animatedData2.push({ x: sbiData.years[0], y: sbiData.dataset2[0] });
-          }
-
-          // Add the interpolated point
-          animatedData1.push({ x: interpX, y: interpY1 });
-          animatedData2.push({ x: interpX, y: interpY2 });
-
-          // Update datasets directly
-          sbiChart.data.datasets[0].data = [...animatedData1];
-          sbiChart.data.datasets[1].data = [...animatedData2];
-
-          sbiChart.update("none");
-          requestAnimationFrame(animateSBI);
-        } else {
-          // Final full data
-          sbiChart.data.datasets[0].data = sbiData.years.map((year, idx) => ({
-            x: year,
-            y: sbiData.dataset1[idx],
-          }));
-          sbiChart.data.datasets[1].data = sbiData.years.map((year, idx) => ({
-            x: year,
-            y: sbiData.dataset2[idx],
-          }));
-          sbiChart.update();
+        function formatInLakhs(value) {
+            return (value / 100000).toFixed(1) + 'L';
         }
-      }
+
+        // Fetch data with proper error handling
+        fetch('/data')
+            .then(response => {
+                if (!response.ok) throw new Error('Network error');
+                return response.text();
+            })
+            .then(text => {
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    // Use fallback data
+                    data = {
+                        labels: [2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024],
+                        dataset1: [1000, 1120, 1254, 1405, 1574, 1763, 1975, 2212, 2477, 2774, 3107, 3480, 3898, 4366, 4890],
+                        dataset2: [1000, 1150, 1323, 1521, 1749, 2011, 2313, 2660, 3059, 3518, 4046, 4653, 5351, 6154, 7077],
+                        dataset1_name: 'Sample Dataset 1',
+                        dataset2_name: 'Sample Dataset 2',
+                        color1: '#0066cc',
+                        color2: '#00cc66'
+                    };
+                }
+                
+                sbiData = {
+                    years: data.labels.map((label, index) => isNaN(label) ? index + 1 : Number(label)),
+                    dataset1: data.dataset1,
+                    dataset2: data.dataset2,
+                    dataset1_name: data.dataset1_name || "Dataset 1",
+                    dataset2_name: data.dataset2_name || "Dataset 2",
+                    color1: data.color1 || "#0066cc",
+                    color2: data.color2 || "#00cc66"
+                };
+                initSBICart();
+                requestAnimationFrame(animateSBI);
+            })
+            .catch(error => {
+                // Use fallback data on any error
+                sbiData = {
+                    years: [2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024],
+                    dataset1: [1000, 1120, 1254, 1405, 1574, 1763, 1975, 2212, 2477, 2774, 3107, 3480, 3898, 4366, 4890],
+                    dataset2: [1000, 1150, 1323, 1521, 1749, 2011, 2313, 2660, 3059, 3518, 4046, 4653, 5351, 6154, 7077],
+                    dataset1_name: 'Sample Dataset 1',
+                    dataset2_name: 'Sample Dataset 2',
+                    color1: '#0066cc',
+                    color2: '#00cc66'
+                };
+                initSBICart();
+                requestAnimationFrame(animateSBI);
+            });
+
+        const labelPlugin = {
+            id: "labelAtEnd",
+            afterDatasetsDraw(chart) {
+                const { ctx } = chart;
+                ctx.save();
+                ctx.font = "bold 18px Arial";
+                ctx.textAlign = "left";
+                ctx.textBaseline = "middle";
+
+                chart.data.datasets.forEach((dataset, i) => {
+                    if (!dataset.data.length) return;
+                    const meta = chart.getDatasetMeta(i);
+                    const lastPoint = meta.data[meta.data.length - 1];
+                    const lastValue = dataset.data[dataset.data.length - 1].y;
+
+                    let offsetX = 6;
+                    if (lastPoint.x > chart.chartArea.right - 60) {
+                        offsetX = -60;
+                        ctx.textAlign = "right";
+                    } else {
+                        ctx.textAlign = "left";
+                    }
+
+                    ctx.fillStyle = dataset.borderColor;
+                    ctx.fillText(
+                        `${dataset.label}: ${formatInLakhs(lastValue)}`,
+                        lastPoint.x + offsetX,
+                        lastPoint.y
+                    );
+                });
+
+                ctx.restore();
+            }
+        };
+
+        function initSBICart() {
+            const ctx = document.getElementById("customChart").getContext("2d");
+            const allValues = [...sbiData.dataset1, ...sbiData.dataset2];
+            const minY = Math.min(...allValues) * 0.95;
+            const maxY = Math.max(...allValues) * 1.05;
+
+            sbiChart = new Chart(ctx, {
+                type: "line",
+                data: {
+                    datasets: [
+                        {
+                            label: sbiData.dataset1_name,
+                            data: [],
+                            borderColor: sbiData.color1,
+                            borderWidth: 3,
+                            fill: false,
+                            tension: 0.1,
+                            pointRadius: 0
+                        },
+                        {
+                            label: sbiData.dataset2_name,
+                            data: [],
+                            borderColor: sbiData.color2,
+                            borderWidth: 3,
+                            fill: false,
+                            tension: 0.1,
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    layout: { padding: { right: 50 } },
+                    animation: false,
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            mode: "index",
+                            intersect: false,
+                            callbacks: {
+                                label: (context) => `${context.dataset.label}: ${Number(context.parsed.y).toLocaleString()}`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: "linear",
+                            min: sbiData.years[0],
+                            max: sbiData.years[sbiData.years.length - 1],
+                            ticks: { stepSize: 1, callback: (value) => value.toString() },
+                            grid: { display: false }
+                        },
+                        y: {
+                            min: minY,
+                            max: maxY,
+                            ticks: { callback: (v) => formatInLakhs(v) },
+                            grid: { display: false }
+                        }
+                    }
+                },
+                plugins: [labelPlugin]
+            });
+        }
+
+        let animatedData1 = [];
+        let animatedData2 = [];
+
+        function animateSBI() {
+            if (progress < 1) {
+                progress += speed;
+                const totalPoints = sbiData.years.length;
+                const exactIndex = progress * (totalPoints - 1);
+                const lowerIndex = Math.floor(exactIndex);
+                const upperIndex = Math.min(lowerIndex + 1, totalPoints - 1);
+                const fraction = exactIndex - lowerIndex;
+
+                const interpX = sbiData.years[lowerIndex] + (sbiData.years[upperIndex] - sbiData.years[lowerIndex]) * fraction;
+                const interpY1 = sbiData.dataset1[lowerIndex] + (sbiData.dataset1[upperIndex] - sbiData.dataset1[lowerIndex]) * fraction;
+                const interpY2 = sbiData.dataset2[lowerIndex] + (sbiData.dataset2[upperIndex] - sbiData.dataset2[lowerIndex]) * fraction;
+
+                if (animatedData1.length === 0) {
+                    animatedData1.push({ x: sbiData.years[0], y: sbiData.dataset1[0] });
+                    animatedData2.push({ x: sbiData.years[0], y: sbiData.dataset2[0] });
+                }
+
+                animatedData1.push({ x: interpX, y: interpY1 });
+                animatedData2.push({ x: interpX, y: interpY2 });
+
+                sbiChart.data.datasets[0].data = [...animatedData1];
+                sbiChart.data.datasets[1].data = [...animatedData2];
+
+                sbiChart.update("none");
+                requestAnimationFrame(animateSBI);
+            } else {
+                sbiChart.data.datasets[0].data = sbiData.years.map((year, idx) => ({ x: year, y: sbiData.dataset1[idx] }));
+                sbiChart.data.datasets[1].data = sbiData.years.map((year, idx) => ({ x: year, y: sbiData.dataset2[idx] }));
+                sbiChart.update();
+            }
+        }
+
+
     </script>
-  </body>
+</body>
 </html>
