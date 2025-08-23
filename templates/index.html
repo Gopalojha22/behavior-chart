@@ -32,62 +32,85 @@
             return (value / 100000).toFixed(1) + 'L';
         }
 
-        // Process data from localStorage
-        function processLocalStorageData() {
-            const csvData = JSON.parse(localStorage.getItem('csvData') || '{}');
-            const config = JSON.parse(localStorage.getItem('chartConfig') || '{}');
-            
-            if (!csvData.file1 || !csvData.file2 || !config.file1_x_field) {
-                // Use fallback data
+        function getChartData() {
+            try {
+                const csvData = localStorage.getItem('csvData');
+                const chartConfig = localStorage.getItem('chartConfig');
+                
+                if (!csvData || !chartConfig) {
+                    return {
+                        years: [2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024],
+                        dataset1: [100000, 112000, 125400, 140500, 157400, 176300, 197500, 221200, 247700, 277400, 310700, 348000, 389800, 436600, 489000],
+                        dataset2: [100000, 115000, 132300, 152100, 174900, 201100, 231300, 266000, 305900, 351800, 404600, 465300, 535100, 615400, 707700],
+                        dataset1_name: 'Nifty 50',
+                        dataset2_name: 'Nifty Next 50',
+                        color1: '#0066cc',
+                        color2: '#00cc66'
+                    };
+                }
+                
+                const csv = JSON.parse(csvData);
+                const config = JSON.parse(chartConfig);
+                
+                const data1 = [], data2 = [], labels = [];
+                
+                csv.file1.rows.forEach((row, index) => {
+                    const xVal = row[config.file1_x_field];
+                    const yVal = parseFloat(row[config.file1_y_field]);
+                    
+                    if (xVal && !isNaN(yVal)) {
+                        labels.push(parseInt(xVal) || 2010 + index);
+                        data1.push(yVal);
+                    }
+                });
+                
+                csv.file2.rows.forEach((row, index) => {
+                    if (index < data1.length) {
+                        const yVal = parseFloat(row[config.file2_y_field]);
+                        if (!isNaN(yVal)) {
+                            data2.push(yVal);
+                        }
+                    }
+                });
+                
+                if (data1.length === 0 || data2.length === 0) {
+                    return {
+                        years: [2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024],
+                        dataset1: [100000, 112000, 125400, 140500, 157400, 176300, 197500, 221200, 247700, 277400, 310700, 348000, 389800, 436600, 489000],
+                        dataset2: [100000, 115000, 132300, 152100, 174900, 201100, 231300, 266000, 305900, 351800, 404600, 465300, 535100, 615400, 707700],
+                        dataset1_name: 'Sample Dataset 1',
+                        dataset2_name: 'Sample Dataset 2',
+                        color1: '#0066cc',
+                        color2: '#00cc66'
+                    };
+                }
+                
                 return {
-                    labels: [2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024],
-                    dataset1: [1000, 1120, 1254, 1405, 1574, 1763, 1975, 2212, 2477, 2774, 3107, 3480, 3898, 4366, 4890],
-                    dataset2: [1000, 1150, 1323, 1521, 1749, 2011, 2313, 2660, 3059, 3518, 4046, 4653, 5351, 6154, 7077],
+                    years: labels,
+                    dataset1: data1,
+                    dataset2: data2,
+                    dataset1_name: config.file1_display_name || 'Dataset 1',
+                    dataset2_name: config.file2_display_name || 'Dataset 2',
+                    color1: config.color1 || '#0066cc',
+                    color2: config.color2 || '#00cc66'
+                };
+                
+            } catch (error) {
+                return {
+                    years: [2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024],
+                    dataset1: [100000, 112000, 125400, 140500, 157400, 176300, 197500, 221200, 247700, 277400, 310700, 348000, 389800, 436600, 489000],
+                    dataset2: [100000, 115000, 132300, 152100, 174900, 201100, 231300, 266000, 305900, 351800, 404600, 465300, 535100, 615400, 707700],
                     dataset1_name: 'Sample Dataset 1',
                     dataset2_name: 'Sample Dataset 2',
                     color1: '#0066cc',
                     color2: '#00cc66'
                 };
             }
-            
-            const data1 = [], data2 = [], labels = [];
-            
-            // Process file 1 data
-            csvData.file1.rows.forEach(row => {
-                const xVal = row[config.file1_x_field];
-                const yVal = parseFloat(row[config.file1_y_field]);
-                
-                if (xVal && !isNaN(yVal)) {
-                    const year = parseInt(xVal) || new Date(xVal).getFullYear() || labels.length + 2010;
-                    labels.push(year);
-                    data1.push(yVal);
-                }
-            });
-            
-            // Process file 2 data
-            csvData.file2.rows.forEach((row, index) => {
-                const yVal = parseFloat(row[config.file2_y_field]);
-                if (!isNaN(yVal) && index < data1.length) {
-                    data2.push(yVal);
-                }
-            });
-            
-            const minLength = Math.min(data1.length, data2.length, labels.length);
-            
-            return {
-                labels: labels.slice(0, minLength),
-                dataset1: data1.slice(0, minLength),
-                dataset2: data2.slice(0, minLength),
-                dataset1_name: config.file1_display_name || 'Dataset 1',
-                dataset2_name: config.file2_display_name || 'Dataset 2',
-                color1: config.color1 || '#0066cc',
-                color2: config.color2 || '#00cc66'
-            };
         }
-        
-        const data = processLocalStorageData();
+
+        const data = getChartData();
         sbiData = {
-            years: data.labels.map((label, index) => isNaN(label) ? index + 1 : Number(label)),
+            years: data.years.map((label, index) => isNaN(label) ? index + 1 : Number(label)),
             dataset1: data.dataset1,
             dataset2: data.dataset2,
             dataset1_name: data.dataset1_name,
@@ -95,9 +118,6 @@
             color1: data.color1,
             color2: data.color2
         };
-        
-        initSBICart();
-        requestAnimationFrame(animateSBI);
 
         const labelPlugin = {
             id: "labelAtEnd",
@@ -175,7 +195,7 @@
                             mode: "index",
                             intersect: false,
                             callbacks: {
-                                label: (context) => `${context.dataset.label}: ${Number(context.parsed.y).toLocaleString()}`
+                                label: (context) => `${context.dataset.label}: ${formatInLakhs(context.parsed.y)}`
                             }
                         }
                     },
@@ -235,7 +255,8 @@
             }
         }
 
-
+        initSBICart();
+        requestAnimationFrame(animateSBI);
     </script>
 </body>
 </html>
