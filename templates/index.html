@@ -218,12 +218,11 @@
                     scales: {
                         x: {
                             type: "linear",
-                            min: Math.min(...sbiData.years),
-                            max: Math.max(...sbiData.years),
+                            min: 2014,
+                            max: 2025,
                             ticks: { 
                                 stepSize: 1, 
-                                callback: (value) => Math.round(value).toString(),
-                                maxTicksLimit: 15
+                                callback: (value) => Math.round(value).toString()
                             },
                             grid: { display: false }
                         },
