@@ -104,7 +104,8 @@
                     dataset1_name: config.file1_display_name || 'Dataset 1',
                     dataset2_name: config.file2_display_name || 'Dataset 2',
                     color1: config.color1 || '#0066cc',
-                    color2: config.color2 || '#00cc66'
+                    color2: config.color2 || '#00cc66',
+                    animation_speed: config.animation_speed || 0.002
                 };
                 
             } catch (error) {
@@ -121,6 +122,7 @@
         }
 
         const data = getChartData();
+        speed = data.animation_speed || 0.002;
         sbiData = {
             years: data.years.map((label, index) => isNaN(label) ? index + 1 : Number(label)),
             dataset1: data.dataset1,
@@ -214,9 +216,13 @@
                     scales: {
                         x: {
                             type: "linear",
-                            min: sbiData.years[0],
-                            max: sbiData.years[sbiData.years.length - 1],
-                            ticks: { stepSize: 1, callback: (value) => value.toString() },
+                            min: Math.min(...sbiData.years),
+                            max: Math.max(...sbiData.years),
+                            ticks: { 
+                                stepSize: 1, 
+                                callback: (value) => Math.round(value).toString(),
+                                maxTicksLimit: 15
+                            },
                             grid: { display: false }
                         },
                         y: {

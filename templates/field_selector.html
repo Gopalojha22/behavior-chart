@@ -96,6 +96,22 @@
                 </div>
             </div>
             
+            <div class="file-section">
+                <h3><i class="fas fa-sliders-h"></i> Chart Settings</h3>
+                <div class="field-group-vertical">
+                    <div class="field-item">
+                        <label><i class="fas fa-tachometer-alt"></i> Animation Speed</label>
+                        <select id="animation_speed">
+                            <option value="0.001">Very Slow</option>
+                            <option value="0.002" selected>Normal</option>
+                            <option value="0.004">Fast</option>
+                            <option value="0.008">Very Fast</option>
+                            <option value="1">Instant</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
             <button type="submit">
                 <i class="fas fa-chart-line"></i> Generate Chart
             </button>
@@ -148,7 +164,8 @@
                 file1_display_name: document.getElementById('file1_display_name').value,
                 file2_display_name: document.getElementById('file2_display_name').value,
                 color1: document.getElementById('color1').value,
-                color2: document.getElementById('color2').value
+                color2: document.getElementById('color2').value,
+                animation_speed: parseFloat(document.getElementById('animation_speed').value)
             };
             
             // Store configuration
