@@ -6,9 +6,7 @@ from datetime import datetime
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY')
-if not app.secret_key:
-    raise ValueError("SECRET_KEY environment variable must be set")
+app.secret_key = os.environ.get('SECRET_KEY', 'fallback-key-for-serverless')
 
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['SESSION_PERMANENT'] = False
@@ -18,15 +16,15 @@ UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'csv'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# Setup logging
-logging.basicConfig(level=logging.INFO)
+# Simple logging for serverless
 logger = logging.getLogger(__name__)
 
+# Skip upload folder creation in serverless
 try:
     if not os.path.exists(UPLOAD_FOLDER):
         os.makedirs(UPLOAD_FOLDER)
-except OSError as e:
-    logger.warning(f"Could not create upload folder: {e}")
+except:
+    pass
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
