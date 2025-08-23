@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, request, redirect, url_for
 import os
 
 app = Flask(__name__, template_folder='../templates')
@@ -6,6 +6,20 @@ app = Flask(__name__, template_folder='../templates')
 @app.route('/')
 def upload_page():
     return render_template('upload.html')
+
+@app.route('/upload', methods=['POST'])
+def upload_files():
+    # Redirect directly to chart since we can't handle file uploads in serverless
+    return redirect(url_for('chart'))
+
+@app.route('/field-selector')
+def field_selector():
+    # Redirect to chart since no file processing in serverless
+    return redirect(url_for('chart'))
+
+@app.route('/analyze', methods=['POST'])
+def analyze():
+    return redirect(url_for('chart'))
 
 @app.route('/chart')
 def chart():
