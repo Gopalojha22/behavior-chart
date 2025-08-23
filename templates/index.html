@@ -63,15 +63,24 @@
                     
                     if (!isNaN(yVal)) {
                         if (config.file1_x_field === '__default_years__') {
-                            // Only process first 12 rows (2014-2025)
-                            if (index < 12) {
-                                labels.push(2014 + index);
+                            // Extract year from row index (monthly data)
+                            const year = 2014 + Math.floor(index / 12);
+                            if (year <= 2025) {
+                                labels.push(year + (index % 12) / 12);
                                 data1.push(yVal);
                             }
                         } else {
                             const xVal = row[config.file1_x_field];
                             if (xVal) {
-                                labels.push(parseInt(xVal) || currentYear - index);
+                                // Handle monthly format like "2014-01"
+                                if (xVal.includes('-')) {
+                                    const [year, month] = xVal.split('-');
+                                    const yearNum = parseInt(year);
+                                    const monthNum = parseInt(month);
+                                    labels.push(yearNum + (monthNum - 1) / 12);
+                                } else {
+                                    labels.push(parseInt(xVal) || currentYear - index);
+                                }
                                 data1.push(yVal);
                             }
                         }
