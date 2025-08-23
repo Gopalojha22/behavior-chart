@@ -1,18 +1,32 @@
 from flask import Flask, render_template, request, redirect, url_for, jsonify, session
 import csv
 import os
+import logging
 from datetime import datetime
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'dev-key-change-in-production')
+app.secret_key = os.environ.get('SECRET_KEY')
+if not app.secret_key:
+    raise ValueError("SECRET_KEY environment variable must be set")
+
+app.config['SESSION_TYPE'] = 'filesystem'
+app.config['SESSION_PERMANENT'] = False
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
 UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'csv'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+try:
+    if not os.path.exists(UPLOAD_FOLDER):
+        os.makedirs(UPLOAD_FOLDER)
+except OSError as e:
+    logger.warning(f"Could not create upload folder: {e}")
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -24,7 +38,8 @@ def load_csv_data(filepath):
             headers = next(reader)
             rows = list(reader)
             return headers, rows
-    except Exception:
+    except (FileNotFoundError, UnicodeDecodeError, csv.Error) as e:
+        logger.error(f"Error loading CSV {filepath}: {e}")
         return [], []
 
 def parse_date_value(date_str):
@@ -38,8 +53,25 @@ def parse_date_value(date_str):
     
     try:
         return int(date_str.strip()[:4])
-    except:
+    except (ValueError, IndexError):
         return None
+
+def process_csv_row(row, x_idx, y_idx):
+    """Helper function to process a single CSV row"""
+    if len(row) <= max(x_idx, y_idx):
+        return None, None
+    
+    try:
+        x_val = row[x_idx].strip()
+        y_val = float(row[y_idx].strip())
+        
+        year = parse_date_value(x_val)
+        if not year:
+            year = 1  # Default fallback
+        
+        return year, y_val
+    except (ValueError, IndexError):
+        return None, None
 
 def process_uploaded_data(file1_path, file2_path, config):
     try:
@@ -49,37 +81,31 @@ def process_uploaded_data(file1_path, file2_path, config):
         if not headers1 or not headers2:
             return None
         
-        x_idx1 = headers1.index(config['file1_x_field'])
-        y_idx1 = headers1.index(config['file1_y_field'])
-        x_idx2 = headers2.index(config['file2_x_field'])
-        y_idx2 = headers2.index(config['file2_y_field'])
+        try:
+            x_idx1 = headers1.index(config['file1_x_field'])
+            y_idx1 = headers1.index(config['file1_y_field'])
+            x_idx2 = headers2.index(config['file2_x_field'])
+            y_idx2 = headers2.index(config['file2_y_field'])
+        except ValueError as e:
+            logger.error(f"Field not found in headers: {e}")
+            return None
         
         data1, data2, labels = [], [], []
         
         for row in rows1:
-            if len(row) > max(x_idx1, y_idx1):
-                try:
-                    x_val = row[x_idx1].strip()
-                    y_val = float(row[y_idx1].strip())
-                    
-                    year = parse_date_value(x_val)
-                    if not year:
-                        year = len(data1) + 1
-                    
-                    data1.append(y_val)
-                    labels.append(year)
-                except (ValueError, IndexError):
-                    continue
+            year, y_val = process_csv_row(row, x_idx1, y_idx1)
+            if year is not None and y_val is not None:
+                data1.append(y_val)
+                labels.append(year)
         
         for row in rows2:
-            if len(row) > max(x_idx2, y_idx2):
-                try:
-                    y_val = float(row[y_idx2].strip())
-                    data2.append(y_val)
-                except (ValueError, IndexError):
-                    continue
+            _, y_val = process_csv_row(row, x_idx2, y_idx2)
+            if y_val is not None:
+                data2.append(y_val)
         
         min_length = min(len(data1), len(data2), len(labels))
+        if min_length == 0:
+            return None
         
         return {
             'labels': labels[:min_length],
@@ -91,8 +117,22 @@ def process_uploaded_data(file1_path, file2_path, config):
             'color2': config.get('color2', '#00cc66')
         }
         
-    except Exception:
+    except Exception as e:
+        logger.error(f"Error processing uploaded data: {e}")
         return None
+
+def get_default_data():
+    """Generate default sample data"""
+    years = list(range(2010, 2025))
+    return {
+        'labels': years,
+        'dataset1': [1000 * (1.12 ** i) for i in range(len(years))],
+        'dataset2': [1000 * (1.15 ** i) for i in range(len(years))],
+        'dataset1_name': 'Nifty 50',
+        'dataset2_name': 'Nifty Next 50',
+        'color1': '#0066cc',
+        'color2': '#00cc66'
+    }
 
 @app.route('/')
 def upload_page():
@@ -109,17 +149,34 @@ def upload_files():
     if file1.filename == '' or file2.filename == '':
         return redirect(url_for('upload_page'))
     
+    # Validate file size and type
+    if file1.content_length and file1.content_length > app.config['MAX_CONTENT_LENGTH']:
+        return redirect(url_for('upload_page'))
+    if file2.content_length and file2.content_length > app.config['MAX_CONTENT_LENGTH']:
+        return redirect(url_for('upload_page'))
+    
     if file1 and allowed_file(file1.filename) and file2 and allowed_file(file2.filename):
         filename1 = secure_filename(file1.filename)
         filename2 = secure_filename(file2.filename)
         
+        # Additional security check
+        if not filename1 or not filename2:
+            return redirect(url_for('upload_page'))
+        
         filepath1 = os.path.join(app.config['UPLOAD_FOLDER'], filename1)
         filepath2 = os.path.join(app.config['UPLOAD_FOLDER'], filename2)
+        
+        # Ensure files are saved within upload directory
+        if not filepath1.startswith(os.path.abspath(app.config['UPLOAD_FOLDER'])):
+            return redirect(url_for('upload_page'))
+        if not filepath2.startswith(os.path.abspath(app.config['UPLOAD_FOLDER'])):
+            return redirect(url_for('upload_page'))
         
         try:
             file1.save(filepath1)
             file2.save(filepath2)
-        except (OSError, IOError):
+        except (OSError, IOError) as e:
+            logger.error(f"Error saving files: {e}")
             return redirect(url_for('upload_page'))
         
         session['uploaded_files'] = {
@@ -137,8 +194,13 @@ def field_selector():
         return redirect(url_for('upload_page'))
     
     files = session['uploaded_files']
-    headers1, _ = load_csv_data(files['file1'])
-    headers2, _ = load_csv_data(files['file2'])
+    
+    try:
+        headers1, _ = load_csv_data(files['file1'])
+        headers2, _ = load_csv_data(files['file2'])
+    except Exception as e:
+        logger.error(f"Error loading CSV headers: {e}")
+        return redirect(url_for('upload_page'))
     
     if not headers1 or not headers2:
         return redirect(url_for('upload_page'))
@@ -178,7 +240,6 @@ def chart():
 
 @app.route('/data')
 def get_data():
-    # Always return valid JSON, never HTML
     try:
         if 'uploaded_files' in session and 'field_config' in session:
             files = session['uploaded_files']
@@ -189,32 +250,13 @@ def get_data():
                 if processed_data:
                     return jsonify(processed_data)
         
-        # Default data
-        years = list(range(2010, 2025))
-        return jsonify({
-            'labels': years,
-            'dataset1': [1000 * (1.12 ** i) for i in range(len(years))],
-            'dataset2': [1000 * (1.15 ** i) for i in range(len(years))],
-            'dataset1_name': 'Nifty 50',
-            'dataset2_name': 'Nifty Next 50',
-            'color1': '#0066cc',
-            'color2': '#00cc66'
-        })
-    except:
-        # Fallback data - always return JSON
-        years = list(range(2010, 2025))
-        return jsonify({
-            'labels': years,
-            'dataset1': [1000 * (1.12 ** i) for i in range(len(years))],
-            'dataset2': [1000 * (1.15 ** i) for i in range(len(years))],
-            'dataset1_name': 'Sample Dataset 1',
-            'dataset2_name': 'Sample Dataset 2',
-            'color1': '#0066cc',
-            'color2': '#00cc66'
-        })
-
-
+        return jsonify(get_default_data())
+    except Exception as e:
+        logger.error(f"Error in get_data: {e}")
+        return jsonify(get_default_data())
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=False)
+    debug = os.environ.get('FLASK_ENV') == 'development'
+    host = '127.0.0.1' if debug else '0.0.0.0'
+    app.run(host=host, port=port, debug=debug)
