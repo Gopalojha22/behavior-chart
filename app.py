@@ -9,8 +9,11 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-change-in-produ
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
-# Create uploads directory if it doesn't exist
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+# Create uploads directory if it doesn't exist (skip in serverless)
+try:
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+except:
+    pass
 
 # Allowed file extensions
 ALLOWED_EXTENSIONS = {'csv'}
@@ -71,14 +74,18 @@ def upload_files():
         filepath2 = os.path.join(app.config['UPLOAD_FOLDER'], 'dataset2.csv')
         names_file = os.path.join(app.config['UPLOAD_FOLDER'], 'names.txt')
         
-        file1.save(filepath1)
-        file2.save(filepath2)
-        
-        # Save the original names
-        with open(names_file, 'w') as f:
-            f.write(f"{name1}\n{name2}")
-        
-        return redirect(url_for('chart'))
+        try:
+            file1.save(filepath1)
+            file2.save(filepath2)
+            
+            # Save the original names
+            with open(names_file, 'w') as f:
+                f.write(f"{name1}\n{name2}")
+            
+            return redirect(url_for('chart'))
+        except:
+            # If file operations fail (like in serverless), redirect to default chart
+            return redirect(url_for('chart'))
 
 @app.route('/custom-data')
 def custom_data():
@@ -113,17 +120,36 @@ def data():
     file1_path = os.path.join(app.config['UPLOAD_FOLDER'], 'dataset1.csv')
     file2_path = os.path.join(app.config['UPLOAD_FOLDER'], 'dataset2.csv')
     
-    if os.path.exists(file1_path) and os.path.exists(file2_path):
-        dates_nifty50, nifty50_changes = load_monthly_changes(file1_path)
-        dates_next50, next50_changes = load_monthly_changes(file2_path)
-    else:
-        # Fallback to default files
-        dates_nifty50, nifty50_changes = load_monthly_changes(
-            "Nifty 50 Historical Data (1) - Nifty 50 Historical Data (1).csv"
-        )
-        dates_next50, next50_changes = load_monthly_changes(
-            "Nifty Next 50 Historical Data - Nifty Next 50 Historical Data.csv"
-        )
+    try:
+        if os.path.exists(file1_path) and os.path.exists(file2_path):
+            dates_nifty50, nifty50_changes = load_monthly_changes(file1_path)
+            dates_next50, next50_changes = load_monthly_changes(file2_path)
+        else:
+            # Fallback to default files
+            dates_nifty50, nifty50_changes = load_monthly_changes(
+                "Nifty 50 Historical Data (1) - Nifty 50 Historical Data (1).csv"
+            )
+            dates_next50, next50_changes = load_monthly_changes(
+                "Nifty Next 50 Historical Data - Nifty Next 50 Historical Data.csv"
+            )
+    except:
+        # If files don't exist, use fallback
+        try:
+            dates_nifty50, nifty50_changes = load_monthly_changes(
+                "Nifty 50 Historical Data (1) - Nifty 50 Historical Data (1).csv"
+            )
+            dates_next50, next50_changes = load_monthly_changes(
+                "Nifty Next 50 Historical Data - Nifty Next 50 Historical Data.csv"
+            )
+        except:
+            # Return empty data if no files found
+            return jsonify({
+                "labels": [],
+                "dataset1": [],
+                "dataset2": [],
+                "dataset1_name": "No Data",
+                "dataset2_name": "No Data"
+            })
 
     months = min(len(nifty50_changes), len(next50_changes))
 
@@ -161,14 +187,18 @@ def data():
     dataset2_name = "Dataset 2"
     names_file = os.path.join(app.config['UPLOAD_FOLDER'], 'names.txt')
     
-    if os.path.exists(file1_path) and os.path.exists(file2_path) and os.path.exists(names_file):
-        # Read stored original filenames
-        with open(names_file, 'r') as f:
-            lines = f.read().strip().split('\n')
-            if len(lines) >= 2:
-                dataset1_name = lines[0]
-                dataset2_name = lines[1]
-    elif not os.path.exists(file1_path) or not os.path.exists(file2_path):
+    try:
+        if os.path.exists(file1_path) and os.path.exists(file2_path) and os.path.exists(names_file):
+            # Read stored original filenames
+            with open(names_file, 'r') as f:
+                lines = f.read().strip().split('\n')
+                if len(lines) >= 2:
+                    dataset1_name = lines[0]
+                    dataset2_name = lines[1]
+        elif not os.path.exists(file1_path) or not os.path.exists(file2_path):
+            dataset1_name = "Nifty 50"
+            dataset2_name = "Nifty Next 50"
+    except:
         dataset1_name = "Nifty 50"
         dataset2_name = "Nifty Next 50"
     
