@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>CSV Upload - Behavior Chart</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #fafafa;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .upload-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .file-input {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        label {
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="file"], input[type="text"] {
+            padding: 10px;
+            border: 2px dashed #ddd;
+            border-radius: 5px;
+            background: #f9f9f9;
+            margin-bottom: 10px;
+        }
+        input[type="text"] {
+            border: 1px solid #ddd;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .info {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border-left: 4px solid #007bff;
+        }
+        .default-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .default-link a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        .default-link a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Upload CSV Files</h1>
+        
+        <div class="info">
+            <strong>CSV Format:</strong> Each file should have two columns - Date (MM/DD/YYYY) and Monthly Change (%). Max file size: 16MB.
+        </div>
+        
+        <form class="upload-form" action="/upload" method="post" enctype="multipart/form-data">
+            <div class="file-input">
+                <label for="file1">Dataset 1 (e.g., Nifty 50):</label>
+                <input type="file" id="file1" name="file1" accept=".csv" required>
+                <input type="text" name="name1" placeholder="Display name (e.g., Nifty 50)" maxlength="50" required>
+            </div>
+            
+            <div class="file-input">
+                <label for="file2">Dataset 2 (e.g., Nifty Next 50):</label>
+                <input type="file" id="file2" name="file2" accept=".csv" required>
+                <input type="text" name="name2" placeholder="Display name (e.g., Nifty Next 50)" maxlength="50" required>
+            </div>
+            
+            <button type="submit">Upload and Generate Chart</button>
+        </form>
+        
+        <div class="default-link">
+            <a href="/chart">View Chart with Default Data</a>
+        </div>
+    </div>
+</body>
+</html>

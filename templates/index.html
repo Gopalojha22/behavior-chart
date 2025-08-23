@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="UTF-8" />
-    <title>SBI vs FD Growth Chart</title>
+    <title>Investment Comparison Chart</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
       body {
@@ -35,14 +35,19 @@
         progress = 0,
         speed = 0.002;
 
+      // Check if we should use uploaded data or default data
+      const endpoint = window.location.pathname === '/chart' ? '/data' : '/custom-data';
+      
       // Fetch data
-      fetch("/custom-data")
+      fetch(endpoint)
         .then((response) => response.json())
         .then((data) => {
           sbiData = {
-            years: data.labels.map((y) => Number(y)),
+            years: endpoint === '/custom-data' ? data.labels.map((y) => Number(y)) : data.labels.map((label, index) => index + 1),
             dataset1: data.dataset1,
             dataset2: data.dataset2,
+            dataset1_name: data.dataset1_name || "Dataset 1",
+            dataset2_name: data.dataset2_name || "Dataset 2",
           };
           initSBICart();
           requestAnimationFrame(animateSBI);
@@ -97,7 +102,7 @@
           data: {
             datasets: [
               {
-                label: "SBIN Value (₹)",
+                label: sbiData.dataset1_name,
                 data: [],
                 borderColor: "blue",
                 borderWidth: 2,
@@ -106,7 +111,7 @@
                 pointRadius: 0,
               },
               {
-                label: "FD Value (₹)",
+                label: sbiData.dataset2_name,
                 data: [],
                 borderColor: "green",
                 borderWidth: 2,
