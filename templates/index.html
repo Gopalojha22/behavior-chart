@@ -22,9 +22,38 @@
             display: block;
             margin: auto;
         }
+        .record-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #ff4757;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            z-index: 1000;
+            transition: all 0.3s ease;
+            display: block;
+        }
+        .record-btn:hover {
+            background: #ff3742;
+            transform: scale(1.05);
+        }
+        .record-btn.recording {
+            background: #ff4757;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
     </style>
 </head>
 <body>
+    <button id="recordBtn" class="record-btn">🔴 Recording...</button>
     <canvas id="customChart"></canvas>
 
     <script>
@@ -59,27 +88,31 @@
                 // Process file 1 data
                 const currentYear = new Date().getFullYear();
                 csv.file1.rows.forEach((row, index) => {
-                    const yVal = parseFloat(row[config.file1_y_field]);
+                    // Try to get Y value, handle different formats
+                    let yVal = parseFloat(row[config.file1_y_field]);
+                    if (isNaN(yVal)) {
+                        // Try removing commas, percentage signs, currency symbols, etc.
+                        const cleanVal = String(row[config.file1_y_field]).replace(/[,%$₹"]/g, '');
+                        yVal = parseFloat(cleanVal);
+                    }
                     
                     if (!isNaN(yVal)) {
                         if (config.file1_x_field === '__default_years__') {
-                            // Extract year from row index (monthly data)
-                            const year = 2014 + Math.floor(index / 12);
-                            if (year <= 2025) {
-                                labels.push(year + (index % 12) / 12);
-                                data1.push(yVal);
-                            }
+                            // Simple sequential numbering for any dataset
+                            labels.push(2014 + index);
+                            data1.push(yVal);
                         } else {
                             const xVal = row[config.file1_x_field];
                             if (xVal) {
-                                // Handle monthly format like "2014-01"
+                                // Handle different date formats
                                 if (xVal.includes('-')) {
                                     const [year, month] = xVal.split('-');
                                     const yearNum = parseInt(year);
-                                    const monthNum = parseInt(month);
+                                    const monthNum = parseInt(month) || 1;
                                     labels.push(yearNum + (monthNum - 1) / 12);
                                 } else {
-                                    labels.push(parseInt(xVal) || currentYear - index);
+                                    const yearVal = parseInt(xVal) || (2014 + index);
+                                    labels.push(yearVal);
                                 }
                                 data1.push(yVal);
                             }
@@ -90,7 +123,12 @@
                 // Process file 2 data
                 csv.file2.rows.forEach((row, index) => {
                     if (index < data1.length) {
-                        const yVal = parseFloat(row[config.file2_y_field]);
+                        let yVal = parseFloat(row[config.file2_y_field]);
+                        if (isNaN(yVal)) {
+                            // Try cleaning the value
+                            const cleanVal = String(row[config.file2_y_field]).replace(/[,%$₹"]/g, '');
+                            yVal = parseFloat(cleanVal);
+                        }
                         if (!isNaN(yVal)) {
                             data2.push(yVal);
                         }
@@ -145,6 +183,19 @@
             color2: data.color2
         };
 
+        // Background plugin for Chart.js
+        const backgroundPlugin = {
+            id: 'background',
+            beforeDraw: (chart) => {
+                const ctx = chart.canvas.getContext('2d');
+                ctx.save();
+                ctx.globalCompositeOperation = 'destination-over';
+                ctx.fillStyle = '#fafafa';
+                ctx.fillRect(0, 0, chart.canvas.width, chart.canvas.height);
+                ctx.restore();
+            }
+        };
+
         const labelPlugin = {
             id: "labelAtEnd",
             afterDatasetsDraw(chart) {
@@ -181,7 +232,13 @@
         };
 
         function initSBICart() {
-            const ctx = document.getElementById("customChart").getContext("2d");
+            const canvas = document.getElementById("customChart");
+            const ctx = canvas.getContext("2d");
+            
+            // Set canvas background color
+            ctx.fillStyle = '#fafafa';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
             const allValues = [...sbiData.dataset1, ...sbiData.dataset2];
             const minY = Math.min(...allValues) * 0.95;
             const maxY = Math.max(...allValues) * 1.05;
@@ -245,7 +302,7 @@
                         }
                     }
                 },
-                plugins: [labelPlugin]
+                plugins: [backgroundPlugin, labelPlugin]
             });
         }
 
@@ -282,11 +339,96 @@
                 sbiChart.data.datasets[0].data = sbiData.years.map((year, idx) => ({ x: year, y: sbiData.dataset1[idx] }));
                 sbiChart.data.datasets[1].data = sbiData.years.map((year, idx) => ({ x: year, y: sbiData.dataset2[idx] }));
                 sbiChart.update();
+                stopAutoRecording();
             }
         }
 
         initSBICart();
-        requestAnimationFrame(animateSBI);
+        // Start recording and animation immediately
+        setTimeout(() => {
+            startRecording();
+            requestAnimationFrame(animateSBI);
+        }, 100);
+
+        // Manual video recording functionality
+        let mediaRecorder;
+        let recordedChunks = [];
+        let isRecording = false;
+
+        const recordBtn = document.getElementById('recordBtn');
+        
+        recordBtn.addEventListener('click', () => {
+            if (isRecording) {
+                stopRecording();
+            }
+        });
+
+        async function startRecording() {
+            try {
+                const canvas = document.getElementById('customChart');
+                
+                // Set white background to remove black background
+                const ctx = canvas.getContext('2d');
+                const originalComposite = ctx.globalCompositeOperation;
+                ctx.globalCompositeOperation = 'destination-over';
+                ctx.fillStyle = '#fafafa'; // Match body background
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.globalCompositeOperation = originalComposite;
+                
+                const stream = canvas.captureStream(60); // Higher FPS for better quality
+                
+                let options;
+                if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
+                    options = { 
+                        mimeType: 'video/webm;codecs=vp9',
+                        videoBitsPerSecond: 5000000 // 5 Mbps for high quality
+                    };
+                } else {
+                    options = { 
+                        mimeType: 'video/webm',
+                        videoBitsPerSecond: 3000000 // 3 Mbps fallback
+                    };
+                }
+                
+                mediaRecorder = new MediaRecorder(stream, options);
+                recordedChunks = [];
+                
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        recordedChunks.push(event.data);
+                    }
+                };
+                
+                mediaRecorder.onstop = () => {
+                    const videoBlob = new Blob(recordedChunks, { type: options.mimeType });
+                    const url = URL.createObjectURL(videoBlob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'chart-animation.webm';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                };
+                
+                mediaRecorder.start();
+                isRecording = true;
+                recordBtn.classList.add('recording');
+                recordBtn.textContent = '⏹️ Stop Recording';
+                
+            } catch (error) {
+                console.log('Recording failed:', error);
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && isRecording) {
+                mediaRecorder.stop();
+                isRecording = false;
+                recordBtn.classList.remove('recording');
+                recordBtn.textContent = '✓ Downloaded!';
+            }
+        }
     </script>
 </body>
 </html>
